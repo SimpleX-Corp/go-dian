@@ -123,12 +123,12 @@ func sendTestInvoice(client *dian.Client, nit, softwareID, testSetID string) {
 		Number:    fmt.Sprintf("%d", now.Unix()%1000000),
 		IssueDate: &now,
 		IssueTime: &now,
-		Currency:  "COP",
+		Currency:  dian.CurrencyCOP,
 		Issuer: dian.Party{
 			NIT:     nit,
 			DV:      "7",
 			Name:    "EMPRESA DE PRUEBA SAS",
-			DocType: "31",
+			DocType: dian.IDNIT,
 			TaxResponsibilities: []string{"O-47"},
 			Address: dian.Address{
 				Street:      "Calle 100 # 10-20",
@@ -145,7 +145,7 @@ func sendTestInvoice(client *dian.Client, nit, softwareID, testSetID string) {
 			NIT:     "222222222",
 			DV:      "2",
 			Name:    "CLIENTE DE PRUEBA",
-			DocType: "31",
+			DocType: dian.IDNIT,
 			Address: dian.Address{
 				City:     "Bogotá",
 				CityCode: "11001",
@@ -162,7 +162,7 @@ func sendTestInvoice(client *dian.Client, nit, softwareID, testSetID string) {
 				ProductCode: "80111600",
 				Taxes: []dian.Tax{
 					{
-						Type:        "01", // IVA
+						Type:        dian.TaxIVA, // IVA
 						Percent:     19,
 						Amount:      19000,
 						TaxableBase: 100000,
@@ -171,8 +171,8 @@ func sendTestInvoice(client *dian.Client, nit, softwareID, testSetID string) {
 			},
 		},
 		Payment: dian.Payment{
-			Method: "1", // Contado
-			Means:  "10", // Efectivo
+			Method: dian.PaymentCash, // Contado
+			Means:  dian.MeansCash, // Efectivo
 		},
 		SoftwareID: softwareID,
 		Notes:      []string{"Factura de prueba - Proceso de habilitación"},

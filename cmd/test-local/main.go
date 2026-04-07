@@ -28,12 +28,12 @@ func main() {
 		Number:    "990000001",
 		IssueDate: &now,
 		IssueTime: &now,
-		Currency:  "COP",
+		Currency:  dian.CurrencyCOP,
 		Issuer: dian.Party{
 			NIT:     "900373115",
 			DV:      "1",
 			Name:    "EMPRESA DEMO SAS",
-			DocType: "31",
+			DocType: dian.IDNIT,
 			TaxResponsibilities: []string{"O-47", "O-15"},
 			Address: dian.Address{
 				Street:      "Carrera 8 # 12-34",
@@ -52,7 +52,7 @@ func main() {
 			NIT:     "900987654",
 			DV:      "3",
 			Name:    "CLIENTE EJEMPLO SA",
-			DocType: "31",
+			DocType: dian.IDNIT,
 			TaxResponsibilities: []string{"R-99-PN"},
 			Address: dian.Address{
 				Street:   "Calle 50 # 20-30",
@@ -71,7 +71,7 @@ func main() {
 				UnitPrice:   500000,
 				ProductCode: "80111600",
 				Taxes: []dian.Tax{
-					{Type: "01", Percent: 19, Amount: 190000, TaxableBase: 1000000},
+					{Type: dian.TaxIVA, Percent: 19, Amount: 190000, TaxableBase: 1000000},
 				},
 			},
 			{
@@ -82,7 +82,7 @@ func main() {
 				UnitPrice:   800000,
 				ProductCode: "43231500",
 				Taxes: []dian.Tax{
-					{Type: "01", Percent: 19, Amount: 152000, TaxableBase: 800000},
+					{Type: dian.TaxIVA, Percent: 19, Amount: 152000, TaxableBase: 800000},
 				},
 			},
 			{
@@ -93,13 +93,13 @@ func main() {
 				UnitPrice:   50000,
 				ProductCode: "81111800",
 				Taxes: []dian.Tax{
-					{Type: "01", Percent: 19, Amount: 95000, TaxableBase: 500000},
+					{Type: dian.TaxIVA, Percent: 19, Amount: 95000, TaxableBase: 500000},
 				},
 			},
 		},
 		Payment: dian.Payment{
 			Method: "2", // Crédito
-			Means:  "31", // Transferencia
+			Means:  dian.MeansTransfer, // Transferencia
 			DueDate: func() *time.Time { t := now.AddDate(0, 0, 30); return &t }(),
 		},
 		Notes: []string{

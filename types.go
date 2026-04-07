@@ -20,6 +20,36 @@ const (
 	DocDebitNote       = codes.DocDebitNote       // "92" Nota débito
 )
 
+// Fiscal ID type constants - re-exported from go-dian-codes.
+const (
+	IDCedula = string(codes.IDCedula) // "13" Cédula de ciudadanía
+	IDNIT    = string(codes.IDNIT)    // "31" NIT
+)
+
+// Tax type constants - re-exported from go-dian-codes.
+const (
+	TaxIVA        = string(codes.TaxIVA)        // "01" IVA
+	TaxIC         = string(codes.TaxIC)         // "02" IC
+	TaxICA        = string(codes.TaxICA)        // "03" ICA
+	TaxINC        = string(codes.TaxINC)        // "04" INC
+	TaxReteIVA    = string(codes.TaxReteIVA)    // "05" ReteIVA
+	TaxReteFuente = string(codes.TaxReteFuente) // "06" ReteFuente
+)
+
+// Payment constants - re-exported from go-dian-codes.
+const (
+	PaymentCash   = string(codes.PaymentCash)   // "1" Contado
+	PaymentCredit = string(codes.PaymentCredit) // "2" Crédito
+	MeansCash     = string(codes.MeansCash)     // "10" Efectivo
+	MeansTransfer = string(codes.MeansCreditTransfer) // "30" Transferencia
+)
+
+// Currency constants.
+const (
+	CurrencyCOP = codes.CurrencyCOP // "COP"
+	CurrencyUSD = codes.CurrencyUSD // "USD"
+)
+
 // Party represents a business entity (issuer or customer).
 type Party struct {
 	// NIT without verification digit

@@ -164,12 +164,12 @@ func createTestInvoice(nit, dv, pin, prefix, number, techKey string, issueTime t
 		Number:    number,
 		IssueDate: &issueTime,
 		IssueTime: &issueTime,
-		Currency:  "COP",
+		Currency:  dian.CurrencyCOP,
 		Issuer: dian.Party{
 			NIT:     nit,
 			DV:      dv,
 			Name:    CompanyName,
-			DocType: "31",
+			DocType: dian.IDNIT,
 			TaxResponsibilities: []string{"O-47", "O-15"},
 			Address: dian.Address{
 				Street:      "Dirección de prueba",
@@ -187,7 +187,7 @@ func createTestInvoice(nit, dv, pin, prefix, number, techKey string, issueTime t
 			NIT:     "222222222222",
 			DV:      "2",
 			Name:    "CONSUMIDOR FINAL",
-			DocType: "13", // Cédula
+			DocType: dian.IDCedula, // Cédula de ciudadanía
 			TaxResponsibilities: []string{"R-99-PN"},
 			Address: dian.Address{
 				City:     "Bogotá",
@@ -206,7 +206,7 @@ func createTestInvoice(nit, dv, pin, prefix, number, techKey string, issueTime t
 				ProductCode: "43231500",
 				Taxes: []dian.Tax{
 					{
-						Type:        "01",
+						Type:        dian.TaxIVA,
 						Percent:     19,
 						Amount:      19000,
 						TaxableBase: 100000,
@@ -215,8 +215,8 @@ func createTestInvoice(nit, dv, pin, prefix, number, techKey string, issueTime t
 			},
 		},
 		Payment: dian.Payment{
-			Method: "1",
-			Means:  "10",
+			Method: dian.PaymentCash,
+			Means:  dian.MeansCash,
 		},
 		Notes:        []string{"Factura de prueba para habilitación DIAN - " + CompanyName},
 		SoftwareID:   SoftwareID,
