@@ -1,0 +1,5 @@
+*.exe
+*.prof
+*.test
+.idea/
+
