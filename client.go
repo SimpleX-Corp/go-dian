@@ -30,6 +30,17 @@ type Client struct {
 	wssCert      *wssec.Certificate
 }
 
+// ClientMode defines the operation mode (SP or PT).
+type ClientMode string
+
+const (
+	// ModeSP is Software Propio - single certificate for everything
+	ModeSP ClientMode = "SP"
+
+	// ModePT is Proveedor Tecnológico - PT cert for WS-Security, client cert for XAdES
+	ModePT ClientMode = "PT"
+)
+
 // Options configures the Client.
 type Options struct {
 	// Timeout for HTTP requests (default: 30s)
@@ -40,6 +51,10 @@ type Options struct {
 
 	// RetryDelay between retries (default: 1s)
 	RetryDelay time.Duration
+
+	// Mode: SP (Software Propio) or PT (Proveedor Tecnológico)
+	// Default: SP
+	Mode ClientMode
 }
 
 // NewClient creates a new unified DIAN client.
@@ -103,6 +118,100 @@ func NewClientFromBytes(certData []byte, password string, env Environment, opts 
 	}
 	if len(opts) > 0 {
 		opt = opts[0]
+	}
+
+	httpClient := client.NewClient(
+		client.WithTimeout(opt.Timeout),
+		client.WithRetry(opt.MaxRetries, opt.RetryDelay),
+	)
+
+	return &Client{
+		env:         env,
+		soapBuilder: soap.NewBuilder(env),
+		wsSigner:    wssec.NewSigner(wssCert),
+		xadesSigner: xades.NewSigner(xadesCert),
+		httpClient:  httpClient,
+		xadesCert:   xadesCert,
+		wssCert:     wssCert,
+	}, nil
+}
+
+// NewClientPT creates a client for Proveedor Tecnológico mode.
+// In PT mode, two certificates are used:
+//   - ptCert: PT's certificate for WS-Security signing (SOAP envelope)
+//   - clientCert: Client's certificate for XAdES signing (invoice XML)
+//
+// This allows the PT to sign SOAP requests with their own certificate
+// while signing invoices with each client's certificate.
+//
+// Example:
+//
+//	client, err := dian.NewClientPT(
+//	    "pt-cert.p12", "pt-password",           // PT certificate
+//	    "client-cert.p12", "client-password",   // Client certificate
+//	    dian.Produccion,
+//	)
+func NewClientPT(ptCertPath, ptPassword, clientCertPath, clientPassword string, env Environment, opts ...Options) (*Client, error) {
+	// Load PT certificate for WS-Security
+	wssCert, err := wssec.LoadP12(ptCertPath, ptPassword)
+	if err != nil {
+		return nil, err
+	}
+
+	// Load client certificate for XAdES
+	xadesCert, err := xades.LoadP12(clientCertPath, clientPassword)
+	if err != nil {
+		return nil, err
+	}
+
+	opt := Options{
+		Timeout:    30 * time.Second,
+		MaxRetries: 0,
+		RetryDelay: time.Second,
+		Mode:       ModePT,
+	}
+	if len(opts) > 0 {
+		opt = opts[0]
+		opt.Mode = ModePT
+	}
+
+	httpClient := client.NewClient(
+		client.WithTimeout(opt.Timeout),
+		client.WithRetry(opt.MaxRetries, opt.RetryDelay),
+	)
+
+	return &Client{
+		env:         env,
+		soapBuilder: soap.NewBuilder(env),
+		wsSigner:    wssec.NewSigner(wssCert),
+		xadesSigner: xades.NewSigner(xadesCert),
+		httpClient:  httpClient,
+		xadesCert:   xadesCert,
+		wssCert:     wssCert,
+	}, nil
+}
+
+// NewClientPTFromBytes creates a PT client from certificate bytes.
+func NewClientPTFromBytes(ptCertData []byte, ptPassword string, clientCertData []byte, clientPassword string, env Environment, opts ...Options) (*Client, error) {
+	wssCert, err := wssec.LoadP12Bytes(ptCertData, ptPassword)
+	if err != nil {
+		return nil, err
+	}
+
+	xadesCert, err := xades.ParseP12(clientCertData, clientPassword)
+	if err != nil {
+		return nil, err
+	}
+
+	opt := Options{
+		Timeout:    30 * time.Second,
+		MaxRetries: 0,
+		RetryDelay: time.Second,
+		Mode:       ModePT,
+	}
+	if len(opts) > 0 {
+		opt = opts[0]
+		opt.Mode = ModePT
 	}
 
 	httpClient := client.NewClient(
