@@ -3,107 +3,187 @@ package dian
 import (
 	"crypto/sha512"
 	"encoding/hex"
-	"fmt"
 	"strings"
 	"time"
 
-	codes "github.com/SimpleX-Corp/go-dian-codes"
+	"github.com/SimpleX-Corp/go-cufe"
 )
 
-// CUFE calculates the CUFE (Código Único de Facturación Electrónica) for an invoice.
-// CUFE = SHA384(NumFac + FecFac + HorFac + ValFac + CodImp1 + ValImp1 + CodImp2 + ValImp2 + CodImp3 + ValImp3 + ValTot + NitOFE + NumAdq + ClTec + TipoAmbiente)
+// CalculateCUFE calculates the CUFE for an invoice using go-cufe library.
 func CalculateCUFE(req *InvoiceRequest, env Environment) string {
-	// Calculate totals
-	var valFac float64  // Valor factura sin impuestos
-	var valImp1 float64 // IVA
-	var valImp2 float64 // INC
-	var valImp3 float64 // ICA
-	var valTot float64  // Total
+	// Calculate totals from lines
+	var totalBeforeTax float64
+	var taxes []cufe.Tax
+
+	// Aggregate taxes by type
+	taxAmounts := map[cufe.TaxCode]float64{
+		cufe.TaxIVA: 0,
+		cufe.TaxINC: 0,
+		cufe.TaxICA: 0,
+	}
 
 	for _, line := range req.Lines {
-		lineTotal := line.Quantity * line.UnitPrice
-		valFac += lineTotal
-
+		totalBeforeTax += line.Quantity * line.UnitPrice
 		for _, tax := range line.Taxes {
 			switch tax.Type {
-			case string(codes.TaxIVA): // "01" IVA
-				valImp1 += tax.Amount
-			case string(codes.TaxINC): // "04" INC
-				valImp2 += tax.Amount
-			case string(codes.TaxICA): // "03" ICA
-				valImp3 += tax.Amount
+			case TaxIVA:
+				taxAmounts[cufe.TaxIVA] += tax.Amount
+			case TaxINC:
+				taxAmounts[cufe.TaxINC] += tax.Amount
+			case TaxICA:
+				taxAmounts[cufe.TaxICA] += tax.Amount
 			}
 		}
 	}
-	valTot = valFac + valImp1 + valImp2 + valImp3
 
-	// Get dates
+	// Build taxes slice
+	for code, amount := range taxAmounts {
+		taxes = append(taxes, cufe.Tax{Code: code, Amount: amount})
+	}
+
+	// Calculate total payable
+	totalPayable := totalBeforeTax
+	for _, t := range taxes {
+		totalPayable += t.Amount
+	}
+
+	// Get issue date/time
 	now := time.Now()
 	issueDate := now
-	issueTime := now
 	if req.IssueDate != nil {
 		issueDate = *req.IssueDate
 	}
 	if req.IssueTime != nil {
-		issueTime = *req.IssueTime
+		// Combine date from IssueDate with time from IssueTime
+		t := *req.IssueTime
+		issueDate = time.Date(
+			issueDate.Year(), issueDate.Month(), issueDate.Day(),
+			t.Hour(), t.Minute(), t.Second(), t.Nanosecond(),
+			issueDate.Location(),
+		)
 	}
 
-	// Build CUFE string
-	// NumFac: número factura (prefijo + número)
-	numFac := req.Prefix + req.Number
-
-	// FecFac: fecha factura YYYY-MM-DD
-	fecFac := issueDate.Format("2006-01-02")
-
-	// HorFac: hora factura HH:MM:SS-05:00
-	horFac := issueTime.Format("15:04:05-07:00")
-
-	// ValFac: valor sin impuestos (2 decimales, sin separador miles)
-	valFacStr := formatAmount(valFac)
-
-	// Impuestos - using codes from go-dian-codes
-	codImp1 := string(codes.TaxIVA) // "01" IVA
-	valImp1Str := formatAmount(valImp1)
-	codImp2 := string(codes.TaxINC) // "04" INC
-	valImp2Str := formatAmount(valImp2)
-	codImp3 := string(codes.TaxICA) // "03" ICA
-	valImp3Str := formatAmount(valImp3)
-
-	// ValTot
-	valTotStr := formatAmount(valTot)
-
-	// NitOFE: NIT emisor
-	nitOFE := req.Issuer.NIT
-
-	// NumAdq: NIT/documento adquiriente
-	numAdq := req.Customer.NIT
-
-	// ClTec: Clave técnica (de la resolución)
-	clTec := req.TechnicalKey
-	if clTec == "" && req.Resolution != nil {
-		clTec = req.Resolution.TechnicalKey
+	// Get technical key
+	techKey := req.TechnicalKey
+	if techKey == "" && req.Resolution != nil {
+		techKey = req.Resolution.TechnicalKey
 	}
 
-	// TipoAmbiente: 1=Producción, 2=Habilitación (from go-dian-codes)
-	tipoAmbiente := string(codes.EnvTest) // "2"
+	// Map environment
+	cufeEnv := cufe.EnvTesting
 	if env == Produccion {
-		tipoAmbiente = string(codes.EnvProduction) // "1"
+		cufeEnv = cufe.EnvProduction
 	}
 
-	// Concatenar
-	cufeString := numFac + fecFac + horFac + valFacStr + codImp1 + valImp1Str + codImp2 + valImp2Str + codImp3 + valImp3Str + valTotStr + nitOFE + numAdq + clTec + tipoAmbiente
+	// Build invoice for go-cufe
+	inv := cufe.Invoice{
+		Number:         req.Prefix + req.Number,
+		IssueDate:      issueDate,
+		TotalBeforeTax: totalBeforeTax,
+		Taxes:          taxes,
+		TotalPayable:   totalPayable,
+		IssuerNIT:      req.Issuer.NIT,
+		CustomerNIT:    req.Customer.NIT,
+		TechnicalKey:   techKey,
+		Environment:    cufeEnv,
+	}
 
-	// SHA384
-	hash := sha512.Sum384([]byte(cufeString))
-	return strings.ToLower(hex.EncodeToString(hash[:]))
+	// Calculate using go-cufe
+	result, err := cufe.Calculate(inv)
+	if err != nil {
+		// Fallback: return empty string on error (shouldn't happen with valid data)
+		return ""
+	}
+
+	return result.Code
 }
 
 // CalculateCUDE calculates the CUDE for credit/debit notes.
-// Similar to CUFE but uses different technical key.
 func CalculateCUDE(req *InvoiceRequest, env Environment) string {
-	// CUDE uses same algorithm as CUFE
-	// The technical key for notes comes from resolution
-	return CalculateCUFE(req, env)
+	// For credit/debit notes, CUDE uses SoftwarePIN instead of TechnicalKey
+	// and document type in the hash. Using go-cufe's CUDE calculation.
+
+	var totalBeforeTax float64
+	var taxes []cufe.Tax
+
+	taxAmounts := map[cufe.TaxCode]float64{
+		cufe.TaxIVA: 0,
+		cufe.TaxINC: 0,
+		cufe.TaxICA: 0,
+	}
+
+	for _, line := range req.Lines {
+		totalBeforeTax += line.Quantity * line.UnitPrice
+		for _, tax := range line.Taxes {
+			switch tax.Type {
+			case TaxIVA:
+				taxAmounts[cufe.TaxIVA] += tax.Amount
+			case TaxINC:
+				taxAmounts[cufe.TaxINC] += tax.Amount
+			case TaxICA:
+				taxAmounts[cufe.TaxICA] += tax.Amount
+			}
+		}
+	}
+
+	for code, amount := range taxAmounts {
+		taxes = append(taxes, cufe.Tax{Code: code, Amount: amount})
+	}
+
+	totalPayable := totalBeforeTax
+	for _, t := range taxes {
+		totalPayable += t.Amount
+	}
+
+	now := time.Now()
+	issueDate := now
+	if req.IssueDate != nil {
+		issueDate = *req.IssueDate
+	}
+	if req.IssueTime != nil {
+		t := *req.IssueTime
+		issueDate = time.Date(
+			issueDate.Year(), issueDate.Month(), issueDate.Day(),
+			t.Hour(), t.Minute(), t.Second(), t.Nanosecond(),
+			issueDate.Location(),
+		)
+	}
+
+	cufeEnv := cufe.EnvTesting
+	if env == Produccion {
+		cufeEnv = cufe.EnvProduction
+	}
+
+	// Map document type
+	var docType cufe.DocumentType
+	switch req.Type {
+	case DocCreditNote:
+		docType = cufe.DocCreditNote
+	case DocDebitNote:
+		docType = cufe.DocDebitNote
+	default:
+		docType = cufe.DocCreditNote
+	}
+
+	doc := cufe.Document{
+		Type:           docType,
+		Number:         req.Prefix + req.Number,
+		IssueDate:      issueDate,
+		TotalBeforeTax: totalBeforeTax,
+		Taxes:          taxes,
+		TotalPayable:   totalPayable,
+		IssuerNIT:      req.Issuer.NIT,
+		CustomerNIT:    req.Customer.NIT,
+		SoftwarePIN:    req.SoftwarePIN,
+		Environment:    cufeEnv,
+	}
+
+	result, err := cufe.CalculateCUDE(doc)
+	if err != nil {
+		return ""
+	}
+
+	return result.Code
 }
 
 // CalculateSoftwareSecurityCode calculates the software security code.
@@ -112,8 +192,4 @@ func CalculateSoftwareSecurityCode(softwareID, pin, nit string) string {
 	data := softwareID + pin + nit
 	hash := sha512.Sum384([]byte(data))
 	return strings.ToLower(hex.EncodeToString(hash[:]))
-}
-
-func formatAmount(amount float64) string {
-	return fmt.Sprintf("%.2f", amount)
 }
