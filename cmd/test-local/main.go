@@ -136,9 +136,9 @@ func main() {
 	fmt.Printf("Issuer:     %s (NIT: %s-%s)\n", req.Issuer.Name, req.Issuer.NIT, req.Issuer.DV)
 	fmt.Printf("Customer:   %s (NIT: %s-%s)\n", req.Customer.Name, req.Customer.NIT, req.Customer.DV)
 	fmt.Printf("Lines:      %d\n", len(req.Lines))
-	fmt.Printf("Subtotal:   $%,.2f COP\n", subtotal)
-	fmt.Printf("IVA (19%%):  $%,.2f COP\n", totalTax)
-	fmt.Printf("Total:      $%,.2f COP\n", total)
+	fmt.Printf("Subtotal:   $%.2f COP\n", subtotal)
+	fmt.Printf("IVA (19%%):  $%.2f COP\n", totalTax)
+	fmt.Printf("Total:      $%.2f COP\n", total)
 	fmt.Println()
 
 	// Step 1: Build XML

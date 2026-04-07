@@ -16,8 +16,10 @@ const (
 	DocExportInvoice   = codes.DocExportInvoice   // "02" Factura de exportación
 	DocContingency     = codes.DocContingency     // "03" Factura de contingencia
 	DocContingencyDIAN = codes.DocContingencyDIAN // "04" Factura contingencia DIAN
+	DocSupportDoc      = codes.DocSupportDoc      // "05" Documento soporte
 	DocCreditNote      = codes.DocCreditNote      // "91" Nota crédito
 	DocDebitNote       = codes.DocDebitNote       // "92" Nota débito
+	DocPayroll         = codes.DocPayroll         // "102" Nómina electrónica
 )
 
 // Fiscal ID type constants - re-exported from go-dian-codes.
