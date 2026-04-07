@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"time"
+
+	codes "github.com/SimpleX-Corp/go-dian-codes"
 )
 
 // UBL 2.1 namespaces
@@ -30,7 +32,7 @@ func buildInvoiceXML(req *InvoiceRequest) ([]byte, error) {
 	}
 	currency := req.Currency
 	if currency == "" {
-		currency = "COP"
+		currency = codes.CurrencyCOP
 	}
 
 	// Calculate totals
@@ -60,7 +62,7 @@ func buildInvoiceXML(req *InvoiceRequest) ([]byte, error) {
 	ns := nsInvoice
 	invoiceTypeCode := string(req.Type)
 	if invoiceTypeCode == "" {
-		invoiceTypeCode = "01"
+		invoiceTypeCode = string(codes.DocInvoice) // "01"
 	}
 
 	// XML declaration
@@ -286,11 +288,11 @@ func writeAddress(buf *bytes.Buffer, addr *Address) {
 
 	countryCode := addr.CountryCode
 	if countryCode == "" {
-		countryCode = "CO"
+		countryCode = "CO" // Colombia default
 	}
 	countryName := addr.Country
 	if countryName == "" {
-		countryName = "Colombia"
+		countryName = codes.CountryName("CO")
 	}
 	fmt.Fprintf(buf, `<cac:Country><cbc:IdentificationCode>%s</cbc:IdentificationCode><cbc:Name languageID="es">%s</cbc:Name></cac:Country>`,
 		countryCode, countryName)
@@ -304,7 +306,7 @@ func writePartyTaxScheme(buf *bytes.Buffer, party *Party) {
 
 	docType := party.DocType
 	if docType == "" {
-		docType = "31" // NIT
+		docType = string(codes.IDNIT) // "31" NIT
 	}
 	fmt.Fprintf(buf, `<cbc:CompanyID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="%s" schemeName="%s">%s</cbc:CompanyID>`,
 		party.DV, docType, party.NIT)
@@ -318,7 +320,8 @@ func writePartyTaxScheme(buf *bytes.Buffer, party *Party) {
 		buf.WriteString(`<cbc:TaxLevelCode listName="48">R-99-PN</cbc:TaxLevelCode>`)
 	}
 
-	buf.WriteString(`<cac:TaxScheme><cbc:ID>01</cbc:ID><cbc:Name>IVA</cbc:Name></cac:TaxScheme>`)
+	fmt.Fprintf(buf, `<cac:TaxScheme><cbc:ID>%s</cbc:ID><cbc:Name>%s</cbc:Name></cac:TaxScheme>`,
+		string(codes.TaxIVA), codes.TaxTypeName(string(codes.TaxIVA)))
 	buf.WriteString(`</cac:PartyTaxScheme>`)
 }
 
@@ -328,7 +331,7 @@ func writePartyLegalEntity(buf *bytes.Buffer, party *Party) {
 
 	docType := party.DocType
 	if docType == "" {
-		docType = "31"
+		docType = string(codes.IDNIT) // "31" NIT
 	}
 	fmt.Fprintf(buf, `<cbc:CompanyID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="%s" schemeName="%s">%s</cbc:CompanyID>`,
 		party.DV, docType, party.NIT)
@@ -338,11 +341,11 @@ func writePartyLegalEntity(buf *bytes.Buffer, party *Party) {
 func writePaymentMeans(buf *bytes.Buffer, payment *Payment, issueDate time.Time) {
 	method := payment.Method
 	if method == "" {
-		method = "1" // Cash
+		method = string(codes.PaymentCash) // "1" Contado
 	}
 	means := payment.Means
 	if means == "" {
-		means = "10" // Cash
+		means = string(codes.MeansCash) // "10" Efectivo
 	}
 	dueDate := issueDate
 	if payment.DueDate != nil {
@@ -455,24 +458,11 @@ func writeDocumentReference(buf *bytes.Buffer, ref *DocumentReference) {
 }
 
 func getTaxName(taxType string) string {
-	switch taxType {
-	case "01":
-		return "IVA"
-	case "02":
-		return "IC"
-	case "03":
-		return "ICA"
-	case "04":
-		return "INC"
-	case "05":
-		return "ReteIVA"
-	case "06":
-		return "ReteFuente"
-	case "07":
-		return "ReteICA"
-	default:
-		return "IVA"
+	name := codes.TaxTypeName(taxType)
+	if name == "" {
+		return codes.TaxTypeName(string(codes.TaxIVA)) // Default to IVA
 	}
+	return name
 }
 
 func escapeXML(s string) string {

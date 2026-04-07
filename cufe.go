@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	codes "github.com/SimpleX-Corp/go-dian-codes"
 )
 
 // CUFE calculates the CUFE (Código Único de Facturación Electrónica) for an invoice.
@@ -24,11 +26,11 @@ func CalculateCUFE(req *InvoiceRequest, env Environment) string {
 
 		for _, tax := range line.Taxes {
 			switch tax.Type {
-			case "01": // IVA
+			case string(codes.TaxIVA): // "01" IVA
 				valImp1 += tax.Amount
-			case "04": // INC
+			case string(codes.TaxINC): // "04" INC
 				valImp2 += tax.Amount
-			case "03": // ICA
+			case string(codes.TaxICA): // "03" ICA
 				valImp3 += tax.Amount
 			}
 		}
@@ -59,12 +61,12 @@ func CalculateCUFE(req *InvoiceRequest, env Environment) string {
 	// ValFac: valor sin impuestos (2 decimales, sin separador miles)
 	valFacStr := formatAmount(valFac)
 
-	// Impuestos
-	codImp1 := "01" // IVA
+	// Impuestos - using codes from go-dian-codes
+	codImp1 := string(codes.TaxIVA) // "01" IVA
 	valImp1Str := formatAmount(valImp1)
-	codImp2 := "04" // INC
+	codImp2 := string(codes.TaxINC) // "04" INC
 	valImp2Str := formatAmount(valImp2)
-	codImp3 := "03" // ICA
+	codImp3 := string(codes.TaxICA) // "03" ICA
 	valImp3Str := formatAmount(valImp3)
 
 	// ValTot
@@ -82,10 +84,10 @@ func CalculateCUFE(req *InvoiceRequest, env Environment) string {
 		clTec = req.Resolution.TechnicalKey
 	}
 
-	// TipoAmbiente: 1=Producción, 2=Habilitación
-	tipoAmbiente := "2"
+	// TipoAmbiente: 1=Producción, 2=Habilitación (from go-dian-codes)
+	tipoAmbiente := string(codes.EnvTest) // "2"
 	if env == Produccion {
-		tipoAmbiente = "1"
+		tipoAmbiente = string(codes.EnvProduction) // "1"
 	}
 
 	// Concatenar

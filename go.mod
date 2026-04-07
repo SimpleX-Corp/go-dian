@@ -4,6 +4,7 @@ go 1.26.1
 
 require (
 	github.com/SimpleX-Corp/go-dian-client v0.0.0
+	github.com/SimpleX-Corp/go-dian-codes v0.0.0
 	github.com/SimpleX-Corp/go-soap-builder v0.0.0
 	github.com/SimpleX-Corp/go-wssecurity v0.0.0
 	github.com/SimpleX-Corp/go-xades-dian v0.0.0
@@ -16,6 +17,7 @@ require (
 
 replace (
 	github.com/SimpleX-Corp/go-dian-client => ../go-dian-client
+	github.com/SimpleX-Corp/go-dian-codes => ../go-dian-codes
 	github.com/SimpleX-Corp/go-soap-builder => ../go-soap-builder
 	github.com/SimpleX-Corp/go-wssecurity => ../go-wssecurity
 	github.com/SimpleX-Corp/go-xades-dian => ../go-xades-dian

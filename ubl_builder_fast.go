@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	codes "github.com/SimpleX-Corp/go-dian-codes"
 )
 
 // Buffer pool for XML building
@@ -55,12 +57,12 @@ func buildInvoiceXMLFast(req *InvoiceRequest) ([]byte, error) {
 	}
 	currency := req.Currency
 	if currency == "" {
-		currency = "COP"
+		currency = codes.CurrencyCOP
 	}
 
 	invoiceTypeCode := string(req.Type)
 	if invoiceTypeCode == "" {
-		invoiceTypeCode = "01"
+		invoiceTypeCode = string(codes.DocInvoice) // "01"
 	}
 
 	// XML header
@@ -385,11 +387,11 @@ func writeAddressFast(buf *bytes.Buffer, addr *Address) {
 	}
 	countryCode := addr.CountryCode
 	if countryCode == "" {
-		countryCode = "CO"
+		countryCode = "CO" // Colombia
 	}
 	countryName := addr.Country
 	if countryName == "" {
-		countryName = "Colombia"
+		countryName = codes.CountryName("CO")
 	}
 	buf.WriteString(`<cac:Country><cbc:IdentificationCode>`)
 	buf.WriteString(countryCode)
@@ -405,7 +407,7 @@ func writePartyTaxSchemeFast(buf *bytes.Buffer, party *Party) {
 	buf.WriteString(`</cbc:RegistrationName>`)
 	docType := party.DocType
 	if docType == "" {
-		docType = "31"
+		docType = string(codes.IDNIT) // "31" NIT
 	}
 	buf.WriteString(`<cbc:CompanyID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="`)
 	buf.WriteString(party.DV)
@@ -423,7 +425,11 @@ func writePartyTaxSchemeFast(buf *bytes.Buffer, party *Party) {
 	} else {
 		buf.WriteString(`<cbc:TaxLevelCode listName="48">R-99-PN</cbc:TaxLevelCode>`)
 	}
-	buf.WriteString(`<cac:TaxScheme><cbc:ID>01</cbc:ID><cbc:Name>IVA</cbc:Name></cac:TaxScheme></cac:PartyTaxScheme>`)
+	buf.WriteString(`<cac:TaxScheme><cbc:ID>`)
+	buf.WriteString(string(codes.TaxIVA))
+	buf.WriteString(`</cbc:ID><cbc:Name>`)
+	buf.WriteString(codes.TaxTypeName(string(codes.TaxIVA)))
+	buf.WriteString(`</cbc:Name></cac:TaxScheme></cac:PartyTaxScheme>`)
 }
 
 func writePartyLegalEntityFast(buf *bytes.Buffer, party *Party) {
@@ -432,7 +438,7 @@ func writePartyLegalEntityFast(buf *bytes.Buffer, party *Party) {
 	buf.WriteString(`</cbc:RegistrationName>`)
 	docType := party.DocType
 	if docType == "" {
-		docType = "31"
+		docType = string(codes.IDNIT) // "31" NIT
 	}
 	buf.WriteString(`<cbc:CompanyID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="`)
 	buf.WriteString(party.DV)
@@ -446,11 +452,11 @@ func writePartyLegalEntityFast(buf *bytes.Buffer, party *Party) {
 func writePaymentMeansFast(buf *bytes.Buffer, payment *Payment, issueDate time.Time) {
 	method := payment.Method
 	if method == "" {
-		method = "1"
+		method = string(codes.PaymentCash) // "1" Contado
 	}
 	means := payment.Means
 	if means == "" {
-		means = "10"
+		means = string(codes.MeansCash) // "10" Efectivo
 	}
 	dueDate := issueDate
 	if payment.DueDate != nil {

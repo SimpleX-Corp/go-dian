@@ -1,27 +1,23 @@
 package dian
 
-import "time"
+import (
+	"time"
+
+	codes "github.com/SimpleX-Corp/go-dian-codes"
+)
 
 // DocumentType represents the type of electronic document.
-type DocumentType string
+// Alias to go-dian-codes.DocumentType for backwards compatibility.
+type DocumentType = codes.DocumentType
 
+// Document type constants - re-exported from go-dian-codes.
 const (
-	// Invoices
-	DocInvoice       DocumentType = "01" // Factura electrónica de venta
-	DocExportInvoice DocumentType = "02" // Factura de exportación
-	DocContingency   DocumentType = "03" // Factura de contingencia
-
-	// Credit/Debit Notes
-	DocCreditNote    DocumentType = "91" // Nota crédito
-	DocDebitNote     DocumentType = "92" // Nota débito
-
-	// Support Documents
-	DocSupportDoc    DocumentType = "05" // Documento soporte
-	DocSupportAdjust DocumentType = "95" // Nota de ajuste documento soporte
-
-	// Payroll
-	DocPayroll       DocumentType = "102" // Nómina electrónica
-	DocPayrollAdjust DocumentType = "103" // Nómina de ajuste
+	DocInvoice         = codes.DocInvoice         // "01" Factura electrónica de venta
+	DocExportInvoice   = codes.DocExportInvoice   // "02" Factura de exportación
+	DocContingency     = codes.DocContingency     // "03" Factura de contingencia
+	DocContingencyDIAN = codes.DocContingencyDIAN // "04" Factura contingencia DIAN
+	DocCreditNote      = codes.DocCreditNote      // "91" Nota crédito
+	DocDebitNote       = codes.DocDebitNote       // "92" Nota débito
 )
 
 // Party represents a business entity (issuer or customer).
